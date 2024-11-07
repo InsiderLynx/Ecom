@@ -1,9 +1,55 @@
 <?php
-include("connect.php");
-include("data.php");
-$products=getProducts($pdo);
 session_start();
+require 'connect.php'; // Ensure this file exists and the connection is correct
+require 'data.php';
+
+$category = isset($_GET['category']) ? $_GET['category'] : '';
+$products = []; // Initialize the products array
+
+try {
+    if (!empty($category)) {
+        $stmt = $pdo->prepare("SELECT * FROM products WHERE product_category = ?");
+        $stmt->execute([$category]);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        // Fetch all products if no category is selected
+        $stmt = $pdo->query("SELECT * FROM products");
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (Exception $e) {
+    die("Error fetching products: " . $e->getMessage());
+}
 ?>
+<?php
+
+
+if (isset($_POST['login'])) {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+
+    try {
+        $sql = "SELECT * FROM users WHERE email = :email AND password = :password";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':password', $password);
+        $stmt->execute();
+
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            $_SESSION['user'] = $user;
+            header("Location: index.php"); // Redirect to homepage or dashboard
+            exit();
+        } else {
+            echo "<p style='color: red;'>Invalid email or password</p>";
+        }
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+?>
+
+
 
 
 
@@ -210,8 +256,8 @@ session_start();
             </div>
 
             <ul class="d-flex justify-content-end list-unstyled m-0">
-              <li>
-              <a class="rounded-circle bg-light p-2 mx-1 dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <li>
+    <a class="rounded-circle bg-light p-2 mx-1 dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
         <svg width="24" height="24" viewBox="0 0 24 24"><use xlink:href="#user"></use></svg>
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -226,7 +272,8 @@ session_start();
             <li><a class="dropdown-item" href="registerform.php">Not signed in</a></li>
         <?php endif; ?>
     </ul>
-              </li>
+</li>
+
               <li>
                 <a href="#" class="rounded-circle bg-light p-2 mx-1">
                   <svg width="24" height="24" viewBox="0 0 24 24"><use xlink:href="#heart"></use></svg>
@@ -447,47 +494,58 @@ session_start();
     
 
     <section class="py-5">
-      <div class="container-fluid">
-
-        <div class="bg-secondary py-5 my-5 rounded-5" style="background: url('images/bg-leaves-img-pattern.png') no-repeat;">
-          <div class="container my-5">
-            <div class="row">
-              <div class="col-md-6 p-5">
-                <div class="section-header">
-                  <h2 class="section-title display-4">Get <span class="text-primary">25% Discount</span> on your first purchase</h2>
-                </div>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Dictumst amet, metus, sit massa posuere maecenas. At tellus ut nunc amet vel egestas.</p>
-              </div>
-              <div class="col-md-6 p-5">
-                <form>
-                  <div class="mb-3">
-                    <label for="name" class="form-label">Name</label>
-                    <input type="text"
-                      class="form-control form-control-lg" name="name" id="name" placeholder="Name">
-                  </div>
-                  <div class="mb-3">
-                    <label for="" class="form-label">Email</label>
-                    <input type="email" class="form-control form-control-lg" name="email" id="email" placeholder="abc@mail.com">
-                  </div>
-                  <div class="form-check form-check-inline mb-3">
-                    <label class="form-check-label" for="subscribe">
-                    <input class="form-check-input" type="checkbox" id="subscribe" value="subscribe">
-                    Subscribe to the newsletter</label>
-                  </div>
-                  <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-dark btn-lg">Submit</button>
-                  </div>
-                </form>
+    <div class="container-fluid pt-4 px-4">
+        <div class="row g-4" id="product-container">
+            <?php 
+            $counter = 0;
+            foreach($products as $product): 
+                if ($counter >= 12) break; // Show only the first 12 products initially
                 
-              </div>
-              
-            </div>
-            
-          </div>
+                // Convert BLOB data to base64
+                if (!empty($product['product_image'])) {
+                    // Ensure proper base64 encoding
+                    $imageData = base64_encode($product['product_image']);
+                    $imageSrc = 'data:image/jpeg;base64,' . $imageData;
+                } else {
+                    // Use a placeholder image if no image is available
+                    $imageSrc = 'default-image.jpg'; // Replace with your placeholder image path
+                }
+
+                $name = isset($product['product_name']) ? htmlspecialchars($product['product_name']) : 'Unnamed Product';
+                $category = isset($product['product_category']) ? htmlspecialchars($product['product_category']) : 'Unknown Category';
+                $price = isset($product['product_price']) ? floatval($product['product_price']) : 0.00;
+            ?>
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4 product-card">
+                    <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
+                        <img src="<?= $imageSrc ?>" class="card-img-top" alt="Product Image" style="object-fit: cover; height: 200px;">
+                        <div class="card-body text-center">
+                            <h5 class="card-title mb-2 fw-bold"><?= $name ?></h5>
+                            <p class="card-text text-muted small mb-1">Category: <?= $category ?></p>
+                            <p class="card-text text-success fw-bold mb-3">Price: $<?= number_format($price, 2) ?></p>
+                            <a href="product_detail.php?id=<?= htmlspecialchars($product['product_id']) ?>" class="btn btn-outline-primary btn-sm">View Details</a>
+                            <!-- Add to Cart button -->
+                            <form method="POST" action="add_to_cart.php" class="d-inline-block mt-2">
+                                <input type="hidden" name="product_id" value="<?= htmlspecialchars($product['product_id']) ?>">
+                                <input type="hidden" name="product_name" value="<?= $name ?>">
+                                <input type="hidden" name="product_price" value="<?= number_format($price, 2) ?>">
+                                <input type="hidden" name="product_image" value="<?= $imageSrc ?>">
+                                <button type="submit" name="add_to_cart" class="btn btn-success btn-sm">Add to Cart</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php 
+                $counter++; 
+            endforeach;
+            ?>
         </div>
-        
-      </div>
-    </section>
+
+        <div class="text-center">
+            <button id="load-more" class="btn btn-secondary">Load More</button>
+        </div>
+    </div>
+</section>
+
 
     
 
