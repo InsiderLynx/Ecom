@@ -31,6 +31,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
+<?php
+
+// Check if the user is logged in
+if (!isset($_SESSION['user_id'])) {
+    // If not logged in, redirect to the registration form
+    header("Location: registerform.php");
+    exit();
+}
+
+// Fetch user details
+$user_id = $_SESSION['user_id'];
+// Fetch user details from the database using $user_id
+// Example: 
+// $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+// $stmt->execute([$user_id]);
+// $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// For now, let's assume $user contains the user details
+$user = [
+    'name' => 'John Doe', // Replace with actual user data from your database
+    'shipping_address' => '123 Main St, Anytown, USA' // Replace with actual shipping address
+];
+
+// Check if the cart is empty
+if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
+    echo "<p>Your cart is empty.</p>";
+    exit();
+}
+?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -170,10 +200,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             </div>
 
             <ul class="d-flex justify-content-end list-unstyled m-0">
-              <li>
-                <a href="#" class="rounded-circle bg-light p-2 mx-1">
-                  <svg width="24" height="24" viewBox="0 0 24 24"><use xlink:href="#user"></use></svg>
-                </a>
+            <li>
+              <a class="rounded-circle bg-light p-2 mx-1 dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24"><use xlink:href="#user"></use></svg>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+        <?php if (isset($_SESSION['user'])): ?>
+            <li>
+                <h6 class="dropdown-header"><?= htmlspecialchars($_SESSION['user']['username']) ?></h6>
+                <p class="dropdown-item text-muted"><?= htmlspecialchars($_SESSION['user']['email']) ?></p>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="logout.php">Logout</a></li>
+        <?php else: ?>
+            <li><a class="dropdown-item" href="registerform.php">Not signed in</a></li>
+        <?php endif; ?>
+    </ul>
               </li>
               <li>
                 <a href="#" class="rounded-circle bg-light p-2 mx-1">
@@ -204,78 +246,72 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
       </div>
 
-    <div class="container mt-4">
-        <h2>Checkout</h2>
+      <div class="container mt-4">
+    <h2>Checkout</h2>
 
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    <?php foreach ($errors as $error): ?>
-                        <li><?= htmlspecialchars($error); ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
+    <?php if (!empty($errors)): ?>
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                <?php foreach ($errors as $error): ?>
+                    <li><?= htmlspecialchars($error); ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 
-        <?php if ($success): ?>
-            <div class="alert alert-success">
-                <?= htmlspecialchars($success); ?>
-            </div>
-        <?php else: ?>
+    <?php if ($success): ?>
+        <div class="alert alert-success">
+            <?= htmlspecialchars($success); ?>
+        </div>
+    <?php else: ?>
 
-            <!-- Display Cart Items -->
-            <h4>Your Cart</h4>
-            <table class="table table-bordered">
-                <thead>
+        <!-- Display Cart Items -->
+        <h4>Your Cart</h4>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Image</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php 
+                $total = 0;
+                foreach ($_SESSION['cart'] as $cart_item): 
+                    $name = isset($cart_item['name']) ? $cart_item['name'] : 'Unnamed Product';
+                    $price = isset($cart_item['price']) ? floatval($cart_item['price']) : 0;
+                    $quantity = isset($cart_item['quantity']) ? intval($cart_item['quantity']) : 1;
+                    $image = isset($cart_item['image']) ? $cart_item['image'] : 'default-image.jpg';
+                    
+                    $item_total = $price * $quantity;
+                    $total += $item_total;
+                ?>
                     <tr>
-                        <th>Product</th>
-                        <th>Image</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Total</th>
+                        <td><?= htmlspecialchars($name); ?></td>
+                        <td><img src="<?= htmlspecialchars($image); ?>" style="width: 80px; height: 80px;" alt="Product Image"></td>
+                        <td>$<?= number_format($price, 2); ?></td>
+                        <td><?= htmlspecialchars($quantity); ?></td>
+                        <td>$<?= number_format($item_total, 2); ?></td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    $total = 0;
-                    foreach ($_SESSION['cart'] as $cart_item): 
-                        $name = isset($cart_item['name']) ? $cart_item['name'] : 'Unnamed Product';
-                        $price = isset($cart_item['price']) ? $cart_item['price'] : 0;
-                        $quantity = isset($cart_item['quantity']) ? $cart_item['quantity'] : 1;
-                        $image = isset($cart_item['image']) ? $cart_item['image'] : 'default-image.jpg';
-                        
-                        $item_total = $price * $quantity;
-                        $total += $item_total;
-                    ?>
-                        <tr>
-                            <td><?= htmlspecialchars($name); ?></td>
-                            <td><img src="<?= htmlspecialchars($image); ?>" style="width: 80px; height: 80px;" alt="Product Image"></td>
-                            <td>$<?= number_format($price, 2); ?></td>
-                            <td><?= htmlspecialchars($quantity); ?></td>
-                            <td>$<?= number_format($item_total, 2); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-            <sectin class=checkout-card>  
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <section class="checkout-card">  
             <h4>Total: $<?= number_format($total, 2); ?></h4>
 
             <!-- Checkout Form -->
-             
             <h4>Shipping Information</h4>
-            <form action="checkout.php" method="POST">
-                <div class="mb-3">
-                    <label for="full_name" class="form-label">Full Name *</label>
-                    <input type="text" name="full_name" class="form-control" id="full_name" value="<?= isset($full_name) ? htmlspecialchars($full_name) : ''; ?>" required>
-                </div>
-                <div class="mb-3">
-                    <label for="address" class="form-label">Shiping Address *</label>
-                    <input type="text" name="address" class="form-control" id="address" value="<?= isset($address) ? htmlspecialchars($address) : ''; ?>" required>
-                </div>
-                
+            <p>Welcome, <?= htmlspecialchars($user['name']) ?>!</p>
+            <p>Shipping Address: <?= htmlspecialchars($user['shipping_address']) ?></p>
+            <a href="update_address.php">Update Shipping Address</a>
 
-                <!-- Payment Information -->
-                <h4>Payment Method</h4>
+            <!-- Payment Information -->
+            <h4>Payment Method</h4>
+            <form action="process_payment.php" method="POST">
                 <div class="mb-3">
                     <label for="payment_method" class="form-label">Choose Payment Method *</label>
                     <select name="payment_method" class="form-control" id="payment_method" required>
@@ -288,11 +324,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 <button type="submit" class="btn btn-primary">Place Order</button>
             </form>
-            </section>
+        </section>
 
-        <?php endif; ?>
-
-    </div>
+    <?php endif; ?>
+</div>
 
    
 
