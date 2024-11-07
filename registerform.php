@@ -1,9 +1,30 @@
-<?php
+"<?php
 include("connect.php");
 include("data.php");
 $products=getProducts($pdo);
 session_start();
 ?>
+<?php
+
+
+if (isset($_POST['submit'])) {
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $address = $_POST['address'];
+
+    $sql = "INSERT INTO users (username, email, password, address) VALUES ('$username', '$email', '$password', '$address')";
+    $stmt = $pdo->exec($sql);
+
+    if ($stmt) {
+        header("Location: login.php"); // Redirect to login.php after successful registration
+        exit();
+    } else {
+        echo "Error inserting data";
+    }
+}
+?>
+
 <head>
 <title>Musical Store</title>
     <meta charset="utf-8">
@@ -23,69 +44,6 @@ session_start();
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-
-    <style>
-    .container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 40px auto;
-    }
-    .card {
-        max-width: 500px;
-        width: 100%;
-        background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-    }
-    .card h4 {
-        font-size: 1.5rem;
-        color: #333;
-    }
-    .form-label {
-        font-weight: bold;
-        color: #555;
-    }
-    .form-control {
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 10px;
-        width: 100%;
-    }
-    .btn {
-        padding: 10px 20px;
-        font-size: 1rem;
-        font-weight: bold;
-    }
-    .btn-primary {
-        background-color: #007bff;
-        border: none;
-        color: white;
-    }
-    .btn-primary:hover {
-        background-color: #0056b3;
-    }
-    .text-center {
-        text-align: center;
-    }
-    .text-decoration-none {
-        text-decoration: none;
-    }
-    .mb-3 {
-        margin-bottom: 1rem;
-    }
-    .mt-3 {
-        margin-top: 1rem;
-    }
-    .mt-4 {
-        margin-top: 2rem;
-    }
-    .d-grid {
-        display: grid;
-        grid-gap: 10px;
-    }
-</style>
 
     
   </head>
@@ -233,7 +191,7 @@ session_start();
       </div>
       <h2 class="text-center mt-4">User Registration</h2>
 <div class="container d-flex justify-content-center align-items-center my-5">
-    <div class="card">
+    <div class="card shadow p-4 rounded-3" style="max-width: 500px; width: 100%;">
         <h4 class="text-center mb-4">Create an Account</h4>
         <form method="post" action="signup.php">
             <div class="mb-3">
@@ -256,11 +214,8 @@ session_start();
                 <button type="submit" name="submit" class="btn btn-primary">Sign Up</button>
             </div>
             <div class="text-center mt-3">
-            <span>Already have an account? <a href="login.php" class="text-decoration-none">Login here</a></span>
+                <span>Already have an account? <a href="login.php" class="text-decoration-none">Login here</a></span>
             </div>
         </form>
     </div>
 </div>
-
-      
-      </body>
