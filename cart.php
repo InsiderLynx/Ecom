@@ -200,12 +200,13 @@ session_start();
             foreach ($_SESSION['cart'] as $key => $cart_item): 
                 // Ensure keys are set and provide defaults if not
                 $name = isset($cart_item['name']) ? $cart_item['name'] : 'Unnamed Product';
-                $price = isset($cart_item['price']) ? $cart_item['price'] : 0;
-                $quantity = isset($cart_item['quantity']) ? $cart_item['quantity'] : 1;
-                $image = isset($cart_item['image']) ? $cart_item['image'] : 'default-image.jpg';
-                
+                $price = isset($cart_item['price']) ? floatval($cart_item['price']) : 0;
+
+                $quantity = isset($cart_item['quantity']) ? intval($cart_item['quantity']) : 1;
+                $image = isset($cart_item['image']) ? $cart_item['image'] : 'default-image.jpg';    
                 $item_total = $price * $quantity;
                 $total += $item_total;
+
             ?>
                 <tr>
                     <td><?= $name ?></td>
