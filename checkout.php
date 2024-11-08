@@ -1,58 +1,15 @@
 <?php
-session_start();
-
-// Check if the cart is empty
-if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
-    header("Location: cart.php");
-    exit();
-}
-
-// Initialize variables
-$errors = [];
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Collect and sanitize form data
-    $full_name = htmlspecialchars(trim($_POST['full_name']));
-    $address = htmlspecialchars(trim($_POST['address']));
-    $payment_method = htmlspecialchars(trim($_POST['payment_method']));
-
-    // Basic validation
-    if (empty($full_name)) $errors[] = "Full name is required.";
-    if (empty($address)) $errors[] = "Address is required.";
-    if (empty($payment_method)) $errors[] = "Please select a payment method.";
-
-    if (empty($errors)) {
-        // Simulate order processing (e.g., save to database)
-        // Clear the cart
-        unset($_SESSION['cart']);
-
-        $success = "Thank you, $full_name! Your order has been placed successfully.";
-    }
-}
-?>
-<?php
+session_start(); // Start the session
 
 // Check if the user is logged in
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user'])) {
     // If not logged in, redirect to the registration form
     header("Location: registerform.php");
     exit();
 }
 
 // Fetch user details
-$user_id = $_SESSION['user_id'];
-// Fetch user details from the database using $user_id
-// Example: 
-// $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-// $stmt->execute([$user_id]);
-// $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// For now, let's assume $user contains the user details
-$user = [
-    'name' => 'John Doe', // Replace with actual user data from your database
-    'shipping_address' => '123 Main St, Anytown, USA' // Replace with actual shipping address
-];
+$user = $_SESSION['user'];
 
 // Check if the cart is empty
 if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
@@ -60,6 +17,7 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
     exit();
 }
 ?>
+
 
 
 <!DOCTYPE html>
@@ -247,23 +205,7 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
       </div>
 
       <div class="container mt-4">
-    <h2>Checkout</h2>
-
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error); ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($success): ?>
-        <div class="alert alert-success">
-            <?= htmlspecialchars($success); ?>
-        </div>
-    <?php else: ?>
+        <h2>Checkout</h2>
 
         <!-- Display Cart Items -->
         <h4>Your Cart</h4>
@@ -281,17 +223,17 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
                 <?php 
                 $total = 0;
                 foreach ($_SESSION['cart'] as $cart_item): 
-                    $name = isset($cart_item['name']) ? $cart_item['name'] : 'Unnamed Product';
+                    $name = isset($cart_item['name']) ? htmlspecialchars($cart_item['name']) : 'Unnamed Product';
                     $price = isset($cart_item['price']) ? floatval($cart_item['price']) : 0;
                     $quantity = isset($cart_item['quantity']) ? intval($cart_item['quantity']) : 1;
-                    $image = isset($cart_item['image']) ? $cart_item['image'] : 'default-image.jpg';
+                    $image = isset($cart_item['image']) ? htmlspecialchars($cart_item['image']) : 'default-image.jpg';
                     
                     $item_total = $price * $quantity;
                     $total += $item_total;
                 ?>
                     <tr>
-                        <td><?= htmlspecialchars($name); ?></td>
-                        <td><img src="<?= htmlspecialchars($image); ?>" style="width: 80px; height: 80px;" alt="Product Image"></td>
+                        <td><?= $name; ?></td>
+                        <td><img src="<?= $image; ?>" style="width: 80px; height: 80px;" alt="Product Image"></td>
                         <td>$<?= number_format($price, 2); ?></td>
                         <td><?= htmlspecialchars($quantity); ?></td>
                         <td>$<?= number_format($item_total, 2); ?></td>
@@ -299,35 +241,33 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
                 <?php endforeach; ?>
             </tbody>
         </table>
-
         <section class="checkout-card">  
             <h4>Total: $<?= number_format($total, 2); ?></h4>
 
-            <!-- Checkout Form -->
+            <!-- User Information -->
             <h4>Shipping Information</h4>
-            <p>Welcome, <?= htmlspecialchars($user['name']) ?>!</p>
-            <p>Shipping Address: <?= htmlspecialchars($user['shipping_address']) ?></p>
+            <p>Welcome, <?= htmlspecialchars($user['username']); ?>!</p>
+            <p>Shipping Address: <?= htmlspecialchars($user['address']); ?></p>
             <a href="update_address.php">Update Shipping Address</a>
 
             <!-- Payment Information -->
             <h4>Payment Method</h4>
-            <form action="process_payment.php" method="POST">
+            <form action="confirmationk
+            +.php" method="POST">
                 <div class="mb-3">
                     <label for="payment_method" class="form-label">Choose Payment Method *</label>
                     <select name="payment_method" class="form-control" id="payment_method" required>
                         <option value="">Select a payment method</option>
-                        <option value="credit_card" <?= isset($payment_method) && $payment_method == 'credit_card' ? 'selected' : ''; ?>>Credit Card</option>
-                        <option value="paypal" <?= isset($payment_method) && $payment_method == 'paypal' ? 'selected' : ''; ?>>PayPal</option>
-                        <option value="bank_transfer" <?= isset($payment_method) && $payment_method == 'bank_transfer' ? 'selected' : ''; ?>>Bank Transfer</option>
+                        <option value="credit_card">Credit Card</option>
+                        <option value="paypal">PayPal</option>
+                        <option value="bank_transfer">Bank Transfer</option>
                     </select>
                 </div>
                 
                 <button type="submit" class="btn btn-primary">Place Order</button>
             </form>
         </section>
-
-    <?php endif; ?>
-</div>
+    </div>
 
    
 
